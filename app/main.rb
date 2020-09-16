@@ -1,5 +1,6 @@
 WIDTH = 1280
 HEIGHT= 720
+INFINITY= 10**100
 
 class Vector2d
   attr_accessor :x, :y
@@ -9,15 +10,26 @@ class Vector2d
     @y=y;
   end
 
+  def copy vect
+    Vector2d.new(@x, @y)
+  end
+
   def add vect
     Vector2d.new(@x+vect.x,@y+vect.y)
+  end
+  def sub vect
+    Vector2d.new(@x-vect.c, @y-vect.y)
   end
   def mag
     ((@x**2)+(@y**2))**0.5
   end
 
-  def degree slope
-
+  def distABS vect
+    tmp =  ((vect.x-@x)**2+(vect.y-@y)**2)**0.5
+    if (tmp < 0)
+      tmp*=-1
+    end
+    tmp
   end
 end
 
@@ -70,37 +82,23 @@ class Ball
   def update args
     @xy=@xy.add(@velocity)
 
-    mode=1
-    if (@velocity.x < 0 && @velocity.y > 0)
-      mode=-(1/4)
-    elsif (@velocity.x < 0 && @velocity.y < 0)
-      mode=(1/4)+1
-    end
-
-    if rect.intersect_rect?(args.state.paddle.rect)
-      args.state.ball.collision((Math::PI/2)*mode)
-    elsif @xy.y + @height > HEIGHT
-      @xy.y = HEIGHT-@height
-      args.state.ball.collision(Math::PI*mode)
+    if @xy.x<0
+      collision -1*INFINITY
+    elsif @xy.x+@width > WIDTH
+      collision INFINITY
     elsif @xy.y < 0
-      @xy.y = 0
-      args.state.ball.collision((Math::PI/2)*mode)
-    elsif @xy.x + @width > WIDTH
-      @xy.x = WIDTH-@width
-      args.state.ball.collision(((Math::PI/4))*-1*mode)
-    elsif @xy.x < 0
-      @xy.x = 0
-      args.state.ball.collision(((Math::PI/4))*mode)
+      collision 0
+      puts "here"
+    elsif @xy.y+@height > HEIGHT
+      collision 0
     end
 
-    sstr = "x:"+ @velocity.x.to_s + "   y:" +  @velocity.y.to_s
-
-    args.outputs.labels << [10,HEIGHT-100,sstr]
 
   end
 
   def render args
     args.outputs.solids << [@xy.x,@xy.y,@width,@height,255,0,255];
+    args.outputs.labels << [100,HEIGHT-100,@velocity.x.to_s+" "+@velocity.y.to_s]
     #args.outputs.sprites << [@xy.x,@xy.y,@width,@height,"sprites/ball.png"];
   end
 
@@ -108,10 +106,65 @@ class Ball
     [@xy.x,@xy.y,@width,@height]
   end
 
-  def collision theta
+  def collision slope
     #TODO atan2 error
-    theta = Math.tan(theta - Math.atan2(@velocity.x,@velocity.x))
-    @velocity=Vector2d.new(Math.cos(theta)*@velocity.mag,Math.sin(theta)*@velocity.mag);
+    #theta = Math.tan(theta - Math.atan2(@velocity.x,@velocity.x))
+    #@velocity=Vector2d.new(Math.cos(theta)*@velocity.mag,Math.sin(theta)*@velocity.mag);
+    origin = Vector2d.new(0,0);
+    backMag = Vector2d.new(-@velocity.x,-@velocity.y);
+    perpSlope = (slope == 0) ? INFINITY : -(1/slope);
+    newB = backMag.y + -(perpSlope*backMag.x)
+    #y=perpSlopex+newB
+    m1=@velocity.y/@velocity.x #TODO x=0
+    b1=1
+
+    m2=perpSlope
+    b2=newB
+
+    #  ┌    ┐    ┌  ┐                             ┌      ┐
+    #M=│m1 1│  N=│b1│ d=1/((-m1)-(-m2))  M^(-1)= d│1 -1  │
+    #  │m2 1│    │b2│                             │-m2 m1│
+    #  └    ┘    └  ┘                             └      ┘
+
+    #        ┌            ┐            ┌                    ┐
+    #M^(-1)= │d       -d  │ (M^(-1))N= │(d*b1)+(-d+b2)      │
+    #        │-m2*d   m1*d│            │(-m2*d*b1)+(m1*d*b2)│
+    #        └            ┘            └                    ┘
+    d = 1/((-m1)+-(-m2))
+    #puts "d:" + d.to_s + "  m1:" + m1.to_s + "  m2:" + m2.to_s
+    pointThree=Vector2d.new(((d*b1)+(-d+b2)),((-m2*d*b1)+(m1*d*b2)))
+    #puts "p3.x:" + pointThree.x.to_s + "  p3.y" + pointThree.y.to_s
+    hypotenuse=backMag.mag
+    opposite=pointThree.distABS(backMag)
+    adjacent=Vector2d.new(0,0).distABS(pointThree)
+
+    #puts "opposite:" + opposite.to_s + "  adjacent:" + adjacent.to_s
+    theta = Math.atan2(opposite,adjacent)
+    slopetheta =0
+    if (slope > 0)
+      sx=0.1
+      h=Vector2d.new(0,0).distABS(Vector2d.new(sx,slope*sx))
+      slopetheta = Math.acos(sx/h);
+    elsif(slope < 0)
+      sx=0.1
+      h=Vector2d.new(0,0).distABS(Vector2d.new(sx,slope*sx))
+      slopetheta = Math.acos(sx/h);
+    end
+
+
+    if (@velocity.x>0 && @velocity.y>0) #TO QII
+      theta=slopetheta+theta
+    elsif (@velocity.x<0 && @velocity.y>0) #TO QI TO Q3
+      theta = ((Math::PI-slopetheta)+theta)
+      #v2 = Vector2d.new(velocity.mag*Math.cos(theta),velocity.mag*Math.sin(theta))
+    elsif (@velocity.x>0 && @velocity.y<0) #TO QIII TO Q1
+      theta = -slopetheta+theta
+    elsif (@velocity.x<0 && @velocity.y<0) #TO QIV
+      theta = (Math::PI+slopetheta-theta)
+    end
+    @velocity = Vector2d.new(@velocity.mag*Math.cos(theta),@velocity.mag*Math.sin(theta))
+
+
   end
 end
 $t=1
