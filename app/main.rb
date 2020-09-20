@@ -250,6 +250,8 @@ def tick args
   args.state.southWall ||= LinearCollider.new([0,0],[WIDTH,0])
   args.state.northWall ||= LinearCollider.new([0,HEIGHT],[WIDTH,HEIGHT],:pos)
 
+  args.state.paddle.update args
+  args.state.ball.update args
 
   args.state.westWall.update_square args
   args.state.eastWall.update_square args
