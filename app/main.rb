@@ -250,8 +250,6 @@ def tick args
   args.state.southWall ||= LinearCollider.new([0,0],[WIDTH,0])
   args.state.northWall ||= LinearCollider.new([0,HEIGHT],[WIDTH,HEIGHT],:pos)
 
-  def add_new_bricks args
-    return if args.state.num_bricks > 40
 
   args.state.westWall.update_square args
   args.state.eastWall.update_square args
@@ -260,5 +258,4 @@ def tick args
 
   args.state.paddle.render args
   args.state.ball.render args
-
 end
