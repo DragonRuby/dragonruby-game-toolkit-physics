@@ -61,9 +61,15 @@ class Paddle
     @width=100
     @height=20
     @speed=10
+
+    @xyCollision = LinearCollider.new([@x,@y+@height],[@x+@width,@y+@height])
   end
 
   def update args
+    @xyCollision.resetPoints([@x,@y+@height],[@x+@width,@y+@height])
+    @xyCollision.update args
+
+
     args.inputs.keyboard.key_held.left  ||= false
     args.inputs.keyboard.key_held.right  ||= false
 
@@ -143,6 +149,13 @@ class LinearCollider
     @extension = extension
   end
 
+  def resetPoints(start,last)
+      @x1=start[0]
+      @y1=start[1]
+      @x2=last[0]
+      @y2=last[1]
+  end
+
   #TODO: Ugly function
   def slope (extend=false)
     x1_l = (extend) ? @x1 + @thickness*(@extension == :neg ? -1 : 1) : @x1
@@ -174,7 +187,7 @@ class LinearCollider
 
   end
 
-  def update_square args
+  def update args
 
     #each of the four points on the square ball - NOTE simple to extend to a circle
     points=[  [args.state.ball.xy.x,                          args.state.ball.xy.y],
@@ -200,7 +213,11 @@ class LinearCollider
         #TODO: this if statement is ugly and can be simplifyed.
         if (@extension == :neg && (by <= slope()*bx+intercept() && by >= bx*slope(true)+intercept(true)))||
           ((@extension == :pos &&(by >= slope()*bx+intercept() && by <= bx*slope(true)+intercept(true))))
-          isCollision=true
+          if (bx >= [@x1,@x2].min &&
+             bx <= [@x1,@x2].max &&
+             by >= [@y1,@y2].min+(@extension == :neg ? -@thickness : 0) && by <= [@y1,@y2].max+(@extension == :pos ? @thickness : 0))
+           isCollision=true
+         end
         end
       end
 
@@ -253,10 +270,10 @@ def tick args
   args.state.paddle.update args
   args.state.ball.update args
 
-  args.state.westWall.update_square args
-  args.state.eastWall.update_square args
-  args.state.southWall.update_square args
-  args.state.northWall.update_square args
+  args.state.westWall.update args
+  args.state.eastWall.update args
+  args.state.southWall.update args
+  args.state.northWall.update args
 
   args.state.paddle.render args
   args.state.ball.render args
