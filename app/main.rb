@@ -55,12 +55,15 @@ end
 
 
 class Paddle
+  attr_accessor :enabled
+
   def initialize ()
     @x=WIDTH/2
     @y=100
     @width=100
     @height=20
     @speed=10
+    @enabled = true
 
     @xyCollision = LinearCollider.new([@x,@y+@height],[@x+@width,@y+@height])
   end
@@ -74,9 +77,9 @@ class Paddle
     args.inputs.keyboard.key_held.right  ||= false
 
     if not (args.inputs.keyboard.key_held.left == args.inputs.keyboard.key_held.right)
-      if args.inputs.keyboard.key_held.left
+      if args.inputs.keyboard.key_held.left && @enabled
         @x-=@speed
-      else
+      elsif args.inputs.keyboard.key_held.right && @enabled
         @x+=@speed
       end
     end
@@ -104,7 +107,7 @@ class Ball
   #@velocity [Vector2d] velocity of ball
   def initialize
     @xy = Vector2d.new(WIDTH/2,500)
-    @velocity = Vector2d.new(2,2)
+    @velocity = Vector2d.new(2,-2)
     @width =  20
     @height = 20
 
@@ -141,7 +144,7 @@ class LinearCollider
   #extension :pos     extends positively
   #extension :neg     extends negatively
 
-  #thickness [float] how thick the line should be (should always be atleast as large as the magnitude of the colliding object)
+  #thickness [float] how thick the line should be (should always be at least as large as the magnitude of the colliding object)
   def initialize (start, last, extension=:neg, thickness=10)
     @x1=start[0]
     @y1=start[1]
@@ -219,7 +222,7 @@ class LinearCollider
              bx <= [@x1,@x2].max &&
              by >= [@y1,@y2].min+(@extension == :neg ? -@thickness : 0) && by <= [@y1,@y2].max+(@extension == :pos ? @thickness : 0))
            isCollision=true
-         end
+          end
         end
       end
 
@@ -265,6 +268,7 @@ def defaults args
   args.state.game_board ||= [(WIDTH / 2 - WIDTH / 4), 0, (WIDTH / 2), HEIGHT]
   args.state.bricks ||= []
   args.state.num_bricks ||= 0
+  args.state.game_over_at ||= 0
 end
 
 #Render loop
@@ -272,14 +276,21 @@ def render args
   render_instructions args
   render_board args
   render_bricks args
-
-
 end
 
 begin :render_methods
 
   #Method to display the instructions of the game
   def render_instructions args
+    return if args.state.key_event_occurred
+    if args.inputs.mouse.click ||
+      args.inputs.keyboard.directional_vector ||
+      args.inputs.keyboard.key_down.enter ||
+      args.inputs.keyboard.key_down.space ||
+      args.inputs.keyboard.key_down.escape
+      args.state.key_event_occurred = true
+    end
+
     args.outputs.labels << [225, HEIGHT - 30, "S and D to move the paddle left and right",  0, 1]
   end
 
@@ -290,9 +301,28 @@ begin :render_methods
   def render_bricks args
     args.outputs.solids << args.state.bricks.map(&:rect)
   end
+end
 
-  def add_new_bricks args
-    return if args.state.num_bricks > 40
+#Calls all methods necessary for performing calculations
+def calc args
+  add_bricks args
+  calc_collision args
+  reset_game args
+
+  #If 60 frames have passed since the game ended, restart the game
+  if args.state.game_over_at != 0 && args.state.game_over_at.elapsed_time == 60
+    args.state.ball = Ball.new
+    args.state.paddle = Paddle.new
+
+    args.state.bricks = []
+    args.state.colliders = []
+    args.state.num_bricks = 0
+  end
+end
+
+begin :calc_methods
+  def add_bricks args
+    return if args.state.num_bricks >= 40
 
     #Width of the game board is 640px
     brick_width = (WIDTH / 2) / 10
@@ -307,6 +337,11 @@ begin :render_methods
           b.x = x * brick_width + (WIDTH / 2 - WIDTH / 4)
           b.y = HEIGHT - ((y + 1) * brick_height)
           b.rect = [b.x + 1, b.y - 1, brick_width - 2, brick_height - 2, 135, 135, 135]
+
+          #Add a linear collider to the brick
+          b.collider = LinearCollider.new([(b.x+1), (b.y-1)], [(b.x+1 + brick_width-2), (b.y-1)], :neg, (0))
+          b.broken = false
+
           args.state.num_bricks += 1
           x += 1
         end
@@ -315,12 +350,39 @@ begin :render_methods
       y += 1
     end
   end
+
+  def reset_game args
+    if args.state.ball.xy.y < 20 && args.state.game_over_at.elapsed_time > 60
+      #Freeze the ball
+      args.state.ball.velocity.x = 0
+      args.state.ball.velocity.y = 0
+      #Freeze the paddle
+      args.state.paddle.enabled = false
+
+      args.state.game_over_at = args.state.tick_count
+    end
+
+    if args.state.game_over_at.elapsed_time < 60
+      #Display a "Game over" message
+      args.outputs.labels << [100, 100, "GAME OVER", 10]
+    end
+  end
+
+  def calc_collision args
+    ball = args.state.ball
+    ball_rect = [ball.xy.x, ball.xy.y, 10, 10]
+
+    #Loop through each brick to see if the ball is colliding with it
+    args.state.bricks.each do |b|
+      if b.rect.intersect_rect?(ball_rect)
+        b.broken = true
+      end
+    end
+
+    args.state.bricks = args.state.bricks.reject(&:broken)
+  end
 end
 
-#Calls all methods necessary for performing calculations
-def calc args
-  add_new_bricks args
-end
 
 $mode = :both
 def tick args
@@ -330,7 +392,7 @@ def tick args
       args.state.westWall  ||= LinearCollider.new([WIDTH/4,0],[WIDTH/4,HEIGHT], :pos)
       args.state.eastWall  ||= LinearCollider.new([3*WIDTH*0.25,0],[3*WIDTH*0.25,HEIGHT])
       args.state.southWall ||= LinearCollider.new([0,0],[WIDTH,0])
-      args.state.northWall ||= LinearCollider.new([0,HEIGHT-32*4],[WIDTH,HEIGHT-32*4],:pos)
+      args.state.northWall ||= LinearCollider.new([0,HEIGHT],[WIDTH,HEIGHT],:pos)
 
       args.state.paddle.update args
       args.state.ball.update args
@@ -347,5 +409,9 @@ def tick args
     defaults args
     render args
     calc args
+
+    args.state.bricks.each do |b|
+      b[:collider].update args
+    end
   end
 end
