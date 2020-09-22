@@ -1,8 +1,17 @@
+# FIXME: args.grid.w will return 1280
 WIDTH = 1280
+# FIXME: args.grid.h will return 720
 HEIGHT= 720
 INFINITY= 10**10
 
+# FIXME: Prefer putting everything in args.state as opposed to iVars (instance variables).
 
+# FIXME: instead of creating a vector class, maybe monkey patch array, hash. Example:
+# class Array
+#   def vect_mult other
+#     [self.x * other.x, self.y * other.y]
+#   end
+# end
 class Vector2d
   attr_accessor :x, :y
 
@@ -54,6 +63,7 @@ class Vector2d
 end
 
 
+# FIXME: Prefer functions applied to data over using a class. Take a look at the pong sample app.
 class Paddle
   attr_accessor :enabled
 
@@ -98,6 +108,7 @@ class Paddle
   end
 end
 
+# FIXME: Do you need a class for so little code? Consider top level functions: defaults_ball, calc_ball, and render_ball
 class Ball
   #TODO limit accessors?
   attr_accessor :xy, :width, :height, :velocity
@@ -132,6 +143,8 @@ class Ball
 end
 
 #The LinearCollider (theoretically) produces collisions upon a line segment defined by two x,y cordinates
+# FIXME: Prefer functions applied to data vs using a class. Remember the "Simple Made Easy" and "Value of Values" talk by Rich Hickey and
+#        Take a look at the platformer sample apps to see how I take a more functional approach to collision.
 class LinearCollider
 
   #start [Array of length 2] start of the line segment as a x,y cordinate
@@ -145,6 +158,7 @@ class LinearCollider
   #extension :neg     extends negatively
 
   #thickness [float] how thick the line should be (should always be at least as large as the magnitude of the colliding object)
+  # FIXME: Array is monkey patched to respond to .x and .y so you don't have to use [0], and [1]
   def initialize (start, last, extension=:neg, thickness=10)
     @x1=start[0]
     @y1=start[1]
@@ -162,6 +176,7 @@ class LinearCollider
   end
 
   #TODO: Ugly function
+  # FIXME: Look at geometry.rb, I think there is a function there that gives you this info.
   def slope (extend=false)
     x1_l = (extend) ? @x1 + @thickness*(@extension == :neg ? -1 : 1) : @x1
     y1_l = (extend) ? @y1 + @thickness*(@extension == :neg ? -1 : 1): @y1
@@ -176,6 +191,7 @@ class LinearCollider
   end
 
   #TODO: Ugly function
+  # FIXME: Look at geometry.rb, I think there is a function there that gives you this info.
   def intercept (extend=false)
     x1_l = (extend) ? @x1 + @thickness*(@extension == :neg ? -1 : 1) : @x1
     y1_l = (extend) ? @y1 + @thickness*(@extension == :neg ? -1 : 1): @y1
@@ -202,7 +218,12 @@ class LinearCollider
             ]
 
     #for each point p in points
+    # FIXME: Body of for block is too large. Seperate this into seperate functions.
+    #        The result of the function can be true or false and you can use that result
+    #        to determine if you need to break the for loop or not.
     for p in points
+
+      # FIXME: Array responds to .x and .y
       bx = p[0]
       by = p[1]
 
@@ -239,6 +260,7 @@ class LinearCollider
         #vectorRepel now has the repeling force
 
         mag = args.state.ball.velocity.mag
+        # FIXME: Take a look at numeric.rb and geometry.rb for usages for Math. I think I already have these functions (maybe)
         theta_ball=Math.atan2(args.state.ball.velocity.y,args.state.ball.velocity.x) #the angle of the ball's velocity
         theta_repel=Math.atan2(vectorRepel.y,vectorRepel.x) #the angle of the repeling force
         fbx = mag * Math.cos(theta_ball) #the x component of the ball's velocity
@@ -311,7 +333,10 @@ def calc args
 
   #If 60 frames have passed since the game ended, restart the game
   if args.state.game_over_at != 0 && args.state.game_over_at.elapsed_time == 60
+    # FIXME: only put value types in state
     args.state.ball = Ball.new
+
+    # FIXME: only put value types in state
     args.state.paddle = Paddle.new
 
     args.state.bricks = []
@@ -330,8 +355,10 @@ begin :calc_methods
     x = 0
     y = 0
 
+    # FIXME: use 4.map_with_index do |y| ... end instead of a while loop and tracking y
     while y < 4
       #Make a box that is 10 bricks wide and 4 bricks tall
+      # FIXME: use 10.map_with_index do |x| ... end instead of tracking x
       args.state.bricks += (10).map do
         args.state.new_entity(:brick) do |b|
           b.x = x * brick_width + (WIDTH / 2 - WIDTH / 4)
@@ -387,6 +414,9 @@ end
 $mode = :both
 def tick args
   if $mode == :paddle || $mode == :both
+    # FIXME: Avoid putting reference types in state. The goal of state is to help facilitate the saving of the game.
+    #        Try saving the game every second and then exiting. The game should pick up where it left off. Take a look
+    #        at the save_load sample app.
       args.state.paddle ||= Paddle.new
       args.state.ball   ||= Ball.new
       args.state.westWall  ||= LinearCollider.new([WIDTH/4,0],[WIDTH/4,HEIGHT], :pos)
@@ -397,6 +427,8 @@ def tick args
       args.state.paddle.update args
       args.state.ball.update args
 
+      # FIXME: Prefer functions applied to data vs using a class. Remember the "Simple Made Easy" and "Value of Values" talk by Rich Hickey and
+      #        Take a look at the platformer sample apps to see how I take a more functional approach to collision.
       args.state.westWall.update args
       args.state.eastWall.update args
       args.state.southWall.update args
