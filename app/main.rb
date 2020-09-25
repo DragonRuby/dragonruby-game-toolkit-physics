@@ -333,7 +333,7 @@ begin :calc_methods
         args.state.new_entity(:brick) do |b|
           b.x = x * brick_width + (args.grid.w / 2 - args.grid.w / 4)
           b.y = args.grid.h - ((y + 1) * brick_height)
-          b.rect = [b.x + 1, b.y - 1, brick_width - 2, brick_height - 2, 135, 135, 135]
+          b.rect = [b.x + 1, b.y - 1, brick_width - 2, brick_height - 2, 235, 50 * y, 52]
 
           #Add a linear collider to the brick
           b.collider = LinearCollider.new([(b.x+1), (b.y-1)], [(b.x+1 + brick_width-2), (b.y-1)], :neg, (0))
