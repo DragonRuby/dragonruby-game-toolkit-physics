@@ -1,5 +1,5 @@
 WIDTH = 1280
-HEIGHT= 720
+HEIGHT = 720
 INFINITY= 10**10
 
 
@@ -110,7 +110,6 @@ class Ball
     @velocity = Vector2d.new(2,-2)
     @width =  20
     @height = 20
-
   end
 
   #move the ball according to its velocity
@@ -122,7 +121,7 @@ class Ball
   #render the ball to the screen
   def render args
     args.outputs.solids << [@xy.x,@xy.y,@width,@height,255,0,255];
-    args.outputs.labels << [20,HEIGHT-50,"velocity: " +@velocity.x.to_s+","+@velocity.y.to_s]
+    args.outputs.labels << [20,args.grid.h-50,"velocity: " +@velocity.x.to_s+","+@velocity.y.to_s]
   end
 
   def rect
@@ -265,7 +264,7 @@ end
 
 #Method to init default values
 def defaults args
-  args.state.game_board ||= [(WIDTH / 2 - WIDTH / 4), 0, (WIDTH / 2), HEIGHT]
+  args.state.game_board ||= [(args.grid.w / 2 - args.grid.w / 4), 0, (args.grid.w / 2), args.grid.h]
   args.state.bricks ||= []
   args.state.num_bricks ||= 0
   args.state.game_over_at ||= 0
@@ -291,7 +290,7 @@ begin :render_methods
       args.state.key_event_occurred = true
     end
 
-    args.outputs.labels << [225, HEIGHT - 30, "S and D to move the paddle left and right",  0, 1]
+    args.outputs.labels << [225, args.grid.h - 30, "S and D to move the paddle left and right",  0, 1]
   end
 
   def render_board args
@@ -325,17 +324,15 @@ begin :calc_methods
     return if args.state.num_bricks >= 40
 
     #Width of the game board is 640px
-    brick_width = (WIDTH / 2) / 10
+    brick_width = (args.grid.w / 2) / 10
     brick_height = brick_width / 2
-    x = 0
-    y = 0
 
-    while y < 4
+    (4).map_with_index do |y|
       #Make a box that is 10 bricks wide and 4 bricks tall
-      args.state.bricks += (10).map do
+      args.state.bricks += (10).map_with_index do |x| 
         args.state.new_entity(:brick) do |b|
-          b.x = x * brick_width + (WIDTH / 2 - WIDTH / 4)
-          b.y = HEIGHT - ((y + 1) * brick_height)
+          b.x = x * brick_width + (args.grid.w / 2 - args.grid.w / 4)
+          b.y = args.grid.h - ((y + 1) * brick_height)
           b.rect = [b.x + 1, b.y - 1, brick_width - 2, brick_height - 2, 135, 135, 135]
 
           #Add a linear collider to the brick
@@ -343,11 +340,8 @@ begin :calc_methods
           b.broken = false
 
           args.state.num_bricks += 1
-          x += 1
         end
       end
-      x = 0
-      y += 1
     end
   end
 
@@ -362,7 +356,7 @@ begin :calc_methods
       args.state.game_over_at = args.state.tick_count
     end
 
-    if args.state.game_over_at.elapsed_time < 60
+    if args.state.game_over_at.elapsed_time < 60 && args.state.tick_count > 60
       #Display a "Game over" message
       args.outputs.labels << [100, 100, "GAME OVER", 10]
     end
@@ -389,10 +383,10 @@ def tick args
   if $mode == :paddle || $mode == :both
       args.state.paddle ||= Paddle.new
       args.state.ball   ||= Ball.new
-      args.state.westWall  ||= LinearCollider.new([WIDTH/4,0],[WIDTH/4,HEIGHT], :pos)
-      args.state.eastWall  ||= LinearCollider.new([3*WIDTH*0.25,0],[3*WIDTH*0.25,HEIGHT])
-      args.state.southWall ||= LinearCollider.new([0,0],[WIDTH,0])
-      args.state.northWall ||= LinearCollider.new([0,HEIGHT],[WIDTH,HEIGHT],:pos)
+      args.state.westWall  ||= LinearCollider.new([args.grid.w/4,0],[args.grid.w/4,args.grid.h], :pos)
+      args.state.eastWall  ||= LinearCollider.new([3*args.grid.w*0.25,0],[3*args.grid.w*0.25,args.grid.h])
+      args.state.southWall ||= LinearCollider.new([0,0],[args.grid.w,0])
+      args.state.northWall ||= LinearCollider.new([0,args.grid.h],[args.grid.w,args.grid.h],:pos)
 
       args.state.paddle.update args
       args.state.ball.update args
