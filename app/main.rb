@@ -79,14 +79,10 @@ def tick args
       args.state.southWall ||= LinearCollider.new({x: 0,            y:0 },          {x: WIDTH,        y:0})
       args.state.northWall ||= LinearCollider.new({x: 0,            y:HEIGHT-32*4}, {x: WIDTH,        y:HEIGHT-32*4 },:pos)
 
-      args.state.testWall ||= LinearCollider.new({x:0 , y:0},{x:WIDTH, y:HEIGHT})
+      #args.state.testWall ||= LinearCollider.new({x:0 , y:0},{x:WIDTH, y:HEIGHT})
 
 
-      args.outputs.lines << [0, 0, WIDTH, HEIGHT]
-
-
-
-
+      #args.outputs.lines << [0, 0, WIDTH, HEIGHT]
 
       args.state.paddle.update args
       args.state.ball.update args
@@ -95,7 +91,6 @@ def tick args
       args.state.eastWall.update args
       args.state.southWall.update args
       args.state.northWall.update args
-
       #args.state.testWall.update args
 
 
