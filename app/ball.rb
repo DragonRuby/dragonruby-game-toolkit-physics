@@ -22,7 +22,7 @@ class Ball
   #render the ball to the screen
   def render args
     args.outputs.solids << [@xy.x,@xy.y,@width,@height,255,0,255];
-    args.outputs.labels << [20,HEIGHT-50,"velocity: " +@velocity.x.to_s+","+@velocity.y.to_s]
+    args.outputs.labels << [20,HEIGHT-50,"velocity: " +@velocity.x.to_s+","+@velocity.y.to_s + "   magnitude:" + @velocity.mag.to_s]
   end
 
   def rect

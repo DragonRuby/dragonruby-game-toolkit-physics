@@ -27,7 +27,7 @@ begin :render_methods
 
   #Method to display the instructions of the game
   def render_instructions args
-    args.outputs.labels << [225, HEIGHT - 30, "S and D to move the paddle left and right",  0, 1]
+    args.outputs.labels << [225, HEIGHT - 30, "← and → to move the paddle left and right",  0, 1]
   end
 
   def render_board args
@@ -74,10 +74,19 @@ def tick args
   if $mode == :paddle || $mode == :both
       args.state.paddle ||= Paddle.new
       args.state.ball   ||= Ball.new
-      args.state.westWall  ||= LinearCollider.new([WIDTH/4,0],[WIDTH/4,HEIGHT], :pos)
-      args.state.eastWall  ||= LinearCollider.new([3*WIDTH*0.25,0],[3*WIDTH*0.25,HEIGHT])
-      args.state.southWall ||= LinearCollider.new([0,0],[WIDTH,0])
-      args.state.northWall ||= LinearCollider.new([0,HEIGHT-32*4],[WIDTH,HEIGHT-32*4],:pos)
+      args.state.westWall  ||= LinearCollider.new({x: WIDTH/4,      y: 0},          {x: WIDTH/4,      y: HEIGHT},     :pos)
+      args.state.eastWall  ||= LinearCollider.new({x: 3*WIDTH*0.25, y: 0},          {x: 3*WIDTH*0.25, y: HEIGHT})
+      args.state.southWall ||= LinearCollider.new({x: 0,            y:0 },          {x: WIDTH,        y:0})
+      args.state.northWall ||= LinearCollider.new({x: 0,            y:HEIGHT-32*4}, {x: WIDTH,        y:HEIGHT-32*4 },:pos)
+
+      args.state.testWall ||= LinearCollider.new({x:0 , y:0},{x:WIDTH, y:HEIGHT})
+
+
+      args.outputs.lines << [0, 0, WIDTH, HEIGHT]
+
+
+
+
 
       args.state.paddle.update args
       args.state.ball.update args
@@ -87,8 +96,23 @@ def tick args
       args.state.southWall.update args
       args.state.northWall.update args
 
+      #args.state.testWall.update args
+
+
       args.state.paddle.render args
       args.state.ball.render args
+
+
+      #$tc+=1
+      #if $tc == 5
+        #$train << [args.state.ball.xy.x, args.state.ball.xy.y]
+        #$tc = 0
+      #end
+      #for t in $train
+
+        #args.outputs.solids << [t[0],t[1],5,5,255,0,0];
+      #end
+
   end
   if $mode == :brick || $mode == :both
     defaults args
