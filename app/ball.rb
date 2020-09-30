@@ -7,7 +7,7 @@ class Ball
   #@velocity [Vector2d] velocity of ball
   def initialize
     @xy = Vector2d.new(WIDTH/2,500)
-    @velocity = Vector2d.new(2,2)
+    @velocity = Vector2d.new(4,-4)
     @width =  20
     @height = 20
   end

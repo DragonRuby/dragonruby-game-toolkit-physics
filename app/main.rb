@@ -15,10 +15,10 @@ def defaults args
   args.state.game_over_at ||= 0
   args.state.paddle ||= Paddle.new
   args.state.ball   ||= Ball.new
-  args.state.westWall  ||= LinearCollider.new({x: args.grid.w/4,      y: 0},          {x: args.grid.w/4,      y: args.grid.h},     :pos)
+  args.state.westWall  ||= LinearCollider.new({x: args.grid.w/4,      y: 0},          {x: args.grid.w/4,      y: args.grid.h}, :pos)
   args.state.eastWall  ||= LinearCollider.new({x: 3*args.grid.w*0.25, y: 0},          {x: 3*args.grid.w*0.25, y: args.grid.h})
   args.state.southWall ||= LinearCollider.new({x: 0,                  y: 0},          {x: args.grid.w,        y: 0})
-  args.state.northWall ||= LinearCollider.new({x: 0,                  y:args.grid.h}, {x: args.grid.w,        y: args.grid.h-32*4 },:pos)
+  args.state.northWall ||= LinearCollider.new({x: 0,                  y:args.grid.h}, {x: args.grid.w,        y: args.grid.h}, :pos)
 
   #args.state.testWall ||= LinearCollider.new({x:0 , y:0},{x:args.grid.w, y:args.grid.h})
 end
@@ -50,6 +50,7 @@ def calc args
   add_new_bricks args
   reset_game args
   calc_collision args
+  win_game args
 
   args.state.westWall.update args
   args.state.eastWall.update args
@@ -80,8 +81,17 @@ begin :calc_methods
           b.y = args.grid.h - ((y + 1) * brick_height)
           b.rect = [b.x + 1, b.y - 1, brick_width - 2, brick_height - 2, 235, 50 * y, 52]
 
-          #Add a linear collider to the brick
-          b.collider = LinearCollider.new([(b.x+1), (b.y-3)], [(b.x+brick_width-2), (b.y-3)], :pos, brick_height)
+          #Add linear colliders to the brick
+          b.collider_bottom = LinearCollider.new([(b.x-2), (b.y-5)], [(b.x+brick_width+1), (b.y-5)], :pos, brick_height)
+          b.collider_right = LinearCollider.new([(b.x+brick_width+1), (b.y-5)], [(b.x+brick_width+1), (b.y+brick_height+1)], :pos)
+          b.collider_left = LinearCollider.new([(b.x-2), (b.y-5)], [(b.x-2), (b.y+brick_height+1)], :neg)
+          b.collider_top = LinearCollider.new([(b.x-2), (b.y+brick_height+1)], [(b.x+brick_width+1), (b.y+brick_height+1)], :neg)
+
+          # @xyCollision  = LinearCollider.new({x: @x,y: @y+@height}, {x: @x+@width, y: @y+@height})
+          # @xyCollision2 = LinearCollider.new({x: @x,y: @y}, {x: @x+@width, y: @y}, :pos)
+          # @xyCollision3 = LinearCollider.new({x: @x,y: @y}, {x: @x, y: @y+@height})
+          # @xyCollision4 = LinearCollider.new({x: @x+@width,y: @y}, {x: @x+@width, y: @y+@height}, :pos)
+
           b.broken = false
 
           args.state.num_bricks += 1
@@ -101,7 +111,7 @@ begin :calc_methods
       args.state.game_over_at = args.state.tick_count
     end
 
-    if args.state.game_over_at.elapsed_time < 60 && args.state.tick_count > 60
+    if args.state.game_over_at.elapsed_time < 60 && args.state.tick_count > 60 && args.state.bricks.count != 0
       #Display a "Game over" message
       args.outputs.labels << [100, 100, "GAME OVER", 10]
     end
@@ -115,17 +125,11 @@ begin :calc_methods
       args.state.paddle = Paddle.new
 
       args.state.bricks = []
-      args.state.colliders = []
       args.state.num_bricks = 0
     end
   end
 
   def calc_collision args
-    #Calculate the reflection of the ball
-    args.state.bricks.each do |b|
-      b[:collider].update args
-    end
-
     #Remove the brick if it is hit with the ball
     ball = args.state.ball
     ball_rect = [ball.xy.x, ball.xy.y, 20, 20]
@@ -133,11 +137,34 @@ begin :calc_methods
     #Loop through each brick to see if the ball is colliding with it
     args.state.bricks.each do |b|
       if b.rect.intersect_rect?(ball_rect)
+        #Run the linear collider for the brick if there is a collision
+        b[:collider_bottom].update args
+        b[:collider_right].update args
+        b[:collider_left].update args
+        b[:collider_top].update args
+
         b.broken = true
       end
     end
 
     args.state.bricks = args.state.bricks.reject(&:broken)
+  end
+
+  def win_game args
+    if args.state.bricks.count == 0 && args.state.game_over_at.elapsed_time > 60
+      #Freeze the ball
+      args.state.ball.velocity.x = 0
+      args.state.ball.velocity.y = 0
+      #Freeze the paddle
+      args.state.paddle.enabled = false
+
+      args.state.game_over_at = args.state.tick_count
+    end
+
+    if args.state.game_over_at.elapsed_time < 60 && args.state.tick_count > 60 && args.state.bricks.count == 0
+      #Display a "Game over" message
+      args.outputs.labels << [100, 100, "CONGRATULATIONS!", 10]
+    end
   end
 
 end
