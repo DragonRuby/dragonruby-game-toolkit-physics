@@ -1,4 +1,6 @@
 class Paddle
+  attr_accessor :enabled
+
   def initialize ()
     @x=WIDTH/2
     @y=100
@@ -11,6 +13,7 @@ class Paddle
     @xyCollision3 = LinearCollider.new({x: @x,y: @y}, {x: @x, y: @y+@height})
     @xyCollision4 = LinearCollider.new({x: @x+@width,y: @y}, {x: @x+@width, y: @y+@height}, :pos)
 
+    @enabled = true
   end
 
   def update args
@@ -28,9 +31,9 @@ class Paddle
     args.inputs.keyboard.key_held.right  ||= false
 
     if not (args.inputs.keyboard.key_held.left == args.inputs.keyboard.key_held.right)
-      if args.inputs.keyboard.key_held.left
+      if args.inputs.keyboard.key_held.left && @enabled
         @x-=@speed
-      else
+      elsif args.inputs.keyboard.key_held.right && @enabled
         @x+=@speed
       end
     end

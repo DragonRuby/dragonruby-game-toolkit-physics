@@ -10,7 +10,6 @@ class Ball
     @velocity = Vector2d.new(2,2)
     @width =  20
     @height = 20
-
   end
 
   #move the ball according to its velocity
