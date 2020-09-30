@@ -1,4 +1,6 @@
 INFINITY= 10**10
+WIDTH=1280
+HEIGHT=720
 
 require 'app/vector2d.rb'
 require 'app/paddle.rb'
@@ -15,8 +17,8 @@ def defaults args
   args.state.ball   ||= Ball.new
   args.state.westWall  ||= LinearCollider.new({x: args.grid.w/4,      y: 0},          {x: args.grid.w/4,      y: args.grid.h},     :pos)
   args.state.eastWall  ||= LinearCollider.new({x: 3*args.grid.w*0.25, y: 0},          {x: 3*args.grid.w*0.25, y: args.grid.h})
-  args.state.southWall ||= LinearCollider.new({x: 0,            y:0 },          {x: args.grid.w,        y:0})
-  args.state.northWall ||= LinearCollider.new({x: 0,            y:args.grid.h-32*4}, {x: args.grid.w,        y:args.grid.h-32*4 },:pos)
+  args.state.southWall ||= LinearCollider.new({x: 0,                  y: 0},          {x: args.grid.w,        y: 0})
+  args.state.northWall ||= LinearCollider.new({x: 0,                  y:args.grid.h}, {x: args.grid.w,        y: args.grid.h-32*4 },:pos)
 
   #args.state.testWall ||= LinearCollider.new({x:0 , y:0},{x:args.grid.w, y:args.grid.h})
 end
@@ -47,6 +49,7 @@ end
 def calc args
   add_new_bricks args
   reset_game args
+  calc_collision args
 
   args.state.westWall.update args
   args.state.eastWall.update args
@@ -78,7 +81,7 @@ begin :calc_methods
           b.rect = [b.x + 1, b.y - 1, brick_width - 2, brick_height - 2, 235, 50 * y, 52]
 
           #Add a linear collider to the brick
-          b.collider = LinearCollider.new([(b.x+1), (b.y-1)], [(b.x+1 + brick_width-2), (b.y-1)], :neg, (0))
+          b.collider = LinearCollider.new([(b.x+1), (b.y-3)], [(b.x+brick_width-2), (b.y-3)], :pos, brick_height)
           b.broken = false
 
           args.state.num_bricks += 1
@@ -115,6 +118,26 @@ begin :calc_methods
       args.state.colliders = []
       args.state.num_bricks = 0
     end
+  end
+
+  def calc_collision args
+    #Calculate the reflection of the ball
+    args.state.bricks.each do |b|
+      b[:collider].update args
+    end
+
+    #Remove the brick if it is hit with the ball
+    ball = args.state.ball
+    ball_rect = [ball.xy.x, ball.xy.y, 20, 20]
+
+    #Loop through each brick to see if the ball is colliding with it
+    args.state.bricks.each do |b|
+      if b.rect.intersect_rect?(ball_rect)
+        b.broken = true
+      end
+    end
+
+    args.state.bricks = args.state.bricks.reject(&:broken)
   end
 
 end
