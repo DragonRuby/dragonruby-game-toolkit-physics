@@ -2,187 +2,168 @@ INFINITY= 10**10
 WIDTH=1280
 HEIGHT=720
 
-require 'app/vector2d.rb'
-require 'app/paddle.rb'
-require 'app/ball.rb'
-require 'app/linearCollider.rb'
+def init args
+  args.state.ballVelocity||= {x: 5, y: 5}
+  args.state.ballPosition||= {x: 200, y: 200}
+  args.state.ballSize    ||= 20
 
-#Method to init default values
-def defaults args
-  args.state.game_board ||= [(args.grid.w / 2 - args.grid.w / 4), 0, (args.grid.w / 2), args.grid.h]
-  args.state.bricks ||= []
-  args.state.num_bricks ||= 0
-  args.state.game_over_at ||= 0
-  args.state.paddle ||= Paddle.new
-  args.state.ball   ||= Ball.new
-  args.state.westWall  ||= LinearCollider.new({x: args.grid.w/4,      y: 0},          {x: args.grid.w/4,      y: args.grid.h}, :pos)
-  args.state.eastWall  ||= LinearCollider.new({x: 3*args.grid.w*0.25, y: 0},          {x: 3*args.grid.w*0.25, y: args.grid.h})
-  args.state.southWall ||= LinearCollider.new({x: 0,                  y: 0},          {x: args.grid.w,        y: 0})
-  args.state.northWall ||= LinearCollider.new({x: 0,                  y:args.grid.h}, {x: args.grid.w,        y: args.grid.h}, :pos)
+  args.state.collisionA  ||= {x: 0,   y: 0  }
+  args.state.collisionB  ||= {x: 100, y: 100}
 
-  #args.state.testWall ||= LinearCollider.new({x:0 , y:0},{x:args.grid.w, y:args.grid.h})
+  args.state.pointMove ||= :collisionA
 end
 
-#Render loop
-def render args
-  render_instructions args
-  render_board args
-  render_bricks args
-end
-
-begin :render_methods
-  #Method to display the instructions of the game
-  def render_instructions args
-    args.outputs.labels << [225, args.grid.h - 30, "← and → to move the paddle left and right",  0, 1]
+def wallBounds args
+  if args.state.ballPosition.x < 0 || args.state.ballPosition.x+args.state.ballSize > WIDTH
+    args.state.ballVelocity.x *= -1
   end
-
-  def render_board args
-    args.outputs.borders << args.state.game_board
-  end
-
-  def render_bricks args
-    args.outputs.solids << args.state.bricks.map(&:rect)
+  if args.state.ballPosition.y < 0 || args.state.ballPosition.y+args.state.ballSize > HEIGHT
+    args.state.ballVelocity.y *= -1
   end
 end
 
-#Calls all methods necessary for performing calculations
-def calc args
-  add_new_bricks args
-  reset_game args
-  calc_collision args
-  win_game args
-
-  args.state.westWall.update args
-  args.state.eastWall.update args
-  args.state.southWall.update args
-  args.state.northWall.update args
-  args.state.paddle.update args
-  args.state.ball.update args
-
-  #args.state.testWall.update args
-
-  args.state.paddle.render args
-  args.state.ball.render args
+def collisionSlope args
+  if (args.state.collisionB.x - args.state.collisionA.x == 0)
+    return INFINITY
+  end
+  return (args.state.collisionB.y - args.state.collisionA.y) / (args.state.collisionB.x - args.state.collisionA.x)
 end
 
-begin :calc_methods
-  def add_new_bricks args
-    return if args.state.num_bricks > 40
+def collision? args, points
+  collisionWidth = 50
+  slope = collisionSlope args
+  result = false
 
-    #Width of the game board is 640px
-    brick_width = (args.grid.w / 2) / 10
-    brick_height = brick_width / 2
+  # calculate a vector with a magnitude of (1/2)collisionWidth and a direction perpendicular to the collision line
+  vect = {x: args.state.collisionB.x - args.state.collisionA.x, y:args.state.collisionB.y - args.state.collisionA.y}
+  mag  = (vect.x**2 + vect.y**2)**0.5
+  vect = {y: -1*(vect.x/(mag))*collisionWidth*0.5, x: (vect.y/(mag))*collisionWidth*0.5}
 
-    (4).map_with_index do |y|
-      #Make a box that is 10 bricks wide and 4 bricks tall
-      args.state.bricks += (10).map_with_index do |x| 
-        args.state.new_entity(:brick) do |b|
-          b.x = x * brick_width + (args.grid.w / 2 - args.grid.w / 4)
-          b.y = args.grid.h - ((y + 1) * brick_height)
-          b.rect = [b.x + 1, b.y - 1, brick_width - 2, brick_height - 2, 235, 50 * y, 52]
+  #four point rectangle
+  rpointA = {x:args.state.collisionA.x + vect.x, y:args.state.collisionA.y + vect.y}
+  rpointB = {x:args.state.collisionB.x + vect.x, y:args.state.collisionB.y + vect.y}
+  rpointC = {x:args.state.collisionB.x - vect.x, y:args.state.collisionB.y - vect.y}
+  rpointD = {x:args.state.collisionA.x - vect.x, y:args.state.collisionA.y - vect.y}
 
-          #Add linear colliders to the brick
-          b.collider_bottom = LinearCollider.new([(b.x-2), (b.y-5)], [(b.x+brick_width+1), (b.y-5)], :pos, brick_height)
-          b.collider_right = LinearCollider.new([(b.x+brick_width+1), (b.y-5)], [(b.x+brick_width+1), (b.y+brick_height+1)], :pos)
-          b.collider_left = LinearCollider.new([(b.x-2), (b.y-5)], [(b.x-2), (b.y+brick_height+1)], :neg)
-          b.collider_top = LinearCollider.new([(b.x-2), (b.y+brick_height+1)], [(b.x+brick_width+1), (b.y+brick_height+1)], :neg)
+  #area of a triangle
+  triArea = -> (a,b,c) { ((a.x * (b.y - c.y) + b.x * (c.y - a.y) + c.x * (a.y - b.y))/2.0).abs }
 
-          # @xyCollision  = LinearCollider.new({x: @x,y: @y+@height}, {x: @x+@width, y: @y+@height})
-          # @xyCollision2 = LinearCollider.new({x: @x,y: @y}, {x: @x+@width, y: @y}, :pos)
-          # @xyCollision3 = LinearCollider.new({x: @x,y: @y}, {x: @x, y: @y+@height})
-          # @xyCollision4 = LinearCollider.new({x: @x+@width,y: @y}, {x: @x+@width, y: @y+@height}, :pos)
-
-          b.broken = false
-
-          args.state.num_bricks += 1
-        end
-      end
+  #if at least on point is in the rectangle then collision? is true - otherwise false
+  for point in points
+    #Check whether a given point lies inside a rectangle or not:
+    #if the sum of the area of traingls, PAB, PBC, PCD, PAD equal the area of the rec, then an intersection has occured
+    areaRec =  triArea.call(rpointA, rpointB, rpointC)+triArea.call(rpointA, rpointC, rpointD)
+    areaSum = [
+      triArea.call(point, rpointA, rpointB),triArea.call(point, rpointB, rpointC),
+      triArea.call(point, rpointC, rpointD),triArea.call(point, rpointA, rpointD)
+    ].inject(0){|sum,x| sum + x }
+    e = 0.0001 #allow for minor error
+    if areaRec>= areaSum-e and areaRec<= areaSum+e
+      result = true
+      #return true
+      break
     end
   end
+  #return false
 
-  def reset_game args
-    if args.state.ball.xy.y < 20 && args.state.game_over_at.elapsed_time > 60
-      #Freeze the ball
-      args.state.ball.velocity.x = 0
-      args.state.ball.velocity.y = 0
-      #Freeze the paddle
-      args.state.paddle.enabled = false
+  args.outputs.lines <<  [rpointA.x, rpointA.y, rpointB.x, rpointB.y,     255, 000, 000]
+  args.outputs.lines <<  [rpointC.x, rpointC.y, rpointD.x, rpointD.y,     255, 255, 000]
+  return result
 
-      args.state.game_over_at = args.state.tick_count
-    end
+end
 
-    if args.state.game_over_at.elapsed_time < 60 && args.state.tick_count > 60 && args.state.bricks.count != 0
-      #Display a "Game over" message
-      args.outputs.labels << [100, 100, "GAME OVER", 10]
-    end
+#see documentation
+def getRepelMagnitude (fbx, fby, vrx, vry, ballMag)
+  a = fbx ; b = vrx ; c = fby
+  d = vry ; e = ballMag
+  if b**2 + d**2 == 0
+    #unexpected
+  end
+  x1 = (-a*b+-c*d + (e**2 * b**2 - b**2 * c**2 + 2*a*b*c*d + e**2 + d**2 - a**2 * d**2)**0.5)/(b**2 + d**2)
+  x2 = -((a*b + c*d + (e**2 * b**2 - b**2 * c**2 + 2*a*b*c*d + e**2 * d**2 - a**2 * d**2)**0.5)/(b**2 + d**2))
+  err = 0.00001
+  o = ((fbx + x1*vrx)**2 + (fby + x1*vry)**2 ) ** 0.5
+  p = ((fbx + x2*vrx)**2 + (fby + x2*vry)**2 ) ** 0.5
+  r = 0
+  if (ballMag >= o-err and ballMag <= o+err)
+    r = x1
+  elsif (ballMag >= p-err and ballMag <= p+err)
+    r = x2
+  else
+    #unexpected
+  end
+  return r
+end
 
-    #If 60 frames have passed since the game ended, restart the game
-    if args.state.game_over_at != 0 && args.state.game_over_at.elapsed_time == 60
-      # FIXME: only put value types in state
-      args.state.ball = Ball.new
+def collide args
+  slope = collisionSlope args
 
-      # FIXME: only put value types in state
-      args.state.paddle = Paddle.new
-
-      args.state.bricks = []
-      args.state.num_bricks = 0
-    end
+  # perpVect: normal vector perpendicular to collision
+  perpVect = {x: args.state.collisionB.x - args.state.collisionA.x, y:args.state.collisionB.y - args.state.collisionA.y}
+  mag  = (perpVect.x**2 + perpVect.y**2)**0.5
+  perpVect = {x: perpVect.x/(mag), y: perpVect.y/(mag)}
+  perpVect = {x: -perpVect.y, y: perpVect.x}
+  if perpVect.y > 0 #ensure perpVect points upward
+    perpVect = {x: perpVect.x*-1, y: perpVect.y*-1}
+  end
+  previousPosition = {
+    x:args.state.ballPosition.x-args.state.ballVelocity.x,
+    y:args.state.ballPosition.y-args.state.ballVelocity.y
+  }
+  yInterc = args.state.collisionA.y + -slope*args.state.collisionA.x
+  if previousPosition.y < slope*previousPosition.x + yInterc #check if ball is bellow or above the collider to determine if perpVect is - or +
+    perpVect = {x: perpVect.x*-1, y: perpVect.y*-1}
   end
 
-  def calc_collision args
-    #Remove the brick if it is hit with the ball
-    ball = args.state.ball
-    ball_rect = [ball.xy.x, ball.xy.y, 20, 20]
+  velocityMag = (args.state.ballVelocity.x**2 + args.state.ballVelocity.y**2)**0.5
+  theta_ball=Math.atan2(args.state.ballVelocity.y,args.state.ballVelocity.x) #the angle of the ball's velocity
+  theta_repel=Math.atan2(perpVect.y,perpVect.x) #the angle of the repelling force(perpVect)
 
-    #Loop through each brick to see if the ball is colliding with it
-    args.state.bricks.each do |b|
-      if b.rect.intersect_rect?(ball_rect)
-        #Run the linear collider for the brick if there is a collision
-        b[:collider_bottom].update args
-        b[:collider_right].update args
-        b[:collider_left].update args
-        b[:collider_top].update args
+  fbx = velocityMag * Math.cos(theta_ball) #the x component of the ball's velocity
+  fby = velocityMag * Math.sin(theta_ball) #the y component of the ball's velocity
 
-        b.broken = true
-      end
-    end
+  #the magnitude of the repelling force
+  repelMag = getRepelMagnitude(fbx, fby, perpVect.x, perpVect.y, (args.state.ballVelocity.x**2 + args.state.ballVelocity.y**2)**0.5)
+  frx = repelMag* Math.cos(theta_repel) #the x component of the repel's velocity | magnitude is set to twice of fbx
+  fry = repelMag* Math.sin(theta_repel) #the y component of the repel's velocity | magnitude is set to twice of fby
 
-    args.state.bricks = args.state.bricks.reject(&:broken)
-  end
-
-  def win_game args
-    if args.state.bricks.count == 0 && args.state.game_over_at.elapsed_time > 60
-      #Freeze the ball
-      args.state.ball.velocity.x = 0
-      args.state.ball.velocity.y = 0
-      #Freeze the paddle
-      args.state.paddle.enabled = false
-
-      args.state.game_over_at = args.state.tick_count
-    end
-
-    if args.state.game_over_at.elapsed_time < 60 && args.state.tick_count > 60 && args.state.bricks.count == 0
-      #Display a "Game over" message
-      args.outputs.labels << [100, 100, "CONGRATULATIONS!", 10]
-    end
-  end
-
+  fsumx = fbx+frx #sum of x forces
+  fsumy = fby+fry #sum of y forces
+  fr = velocityMag#fr is the resulting magnitude
+  thetaNew = Math.atan2(fsumy, fsumx)  #thetaNew is the resulting angle
+  xnew = fr*Math.cos(thetaNew)#resulting x velocity
+  ynew = fr*Math.sin(thetaNew)#resulting y velocity
+  args.state.ballVelocity = {x: xnew, y: ynew}
 end
 
 def tick args
-  defaults args
-  render args
-  calc args
+  init args
 
-  #args.outputs.lines << [0, 0, args.grid.w, args.grid.h]
+  wallBounds args
+  args.state.ballPosition.x += args.state.ballVelocity.x
+  args.state.ballPosition.y += args.state.ballVelocity.y
 
-  #$tc+=1
-  #if $tc == 5
-    #$train << [args.state.ball.xy.x, args.state.ball.xy.y]
-    #$tc = 0
-  #end
-  #for t in $train
+  ballPoints = [
+    {x: args.state.ballPosition.x, y: args.state.ballPosition.y},
+    {x: args.state.ballPosition.x+args.state.ballSize, y: args.state.ballPosition.y},
+    {x: args.state.ballPosition.x, y: args.state.ballPosition.y+args.state.ballSize},
+    {x: args.state.ballPosition.x+args.state.ballSize, y: args.state.ballPosition.y+args.state.ballSize}
+  ]
+  if collision? args, ballPoints
+    collide args
+  end
 
-    #args.outputs.solids << [t[0],t[1],5,5,255,0,0];
-  #end
+  args.outputs.lines <<  [args.state.collisionA.x,  args.state.collisionA.y, args.state.collisionB.x, args.state.collisionB.y]
+  args.outputs.solids << [args.state.ballPosition.x,args.state.ballPosition.y,args.state.ballSize,args.state.ballSize, 255,0,0]
+
+
+  if args.inputs.mouse.click
+    if args.state.pointMove == :collisionA
+      args.state.collisionA = {x: args.inputs.mouse.click.point.x, y: args.inputs.mouse.click.point.y}
+      args.state.pointMove = :collisionB
+    else
+      args.state.collisionB= {x: args.inputs.mouse.click.point.x, y: args.inputs.mouse.click.point.y}
+      args.state.pointMove = :collisionA
+    end
+  end
 end
