@@ -8,19 +8,19 @@ class Paddle
     @height=20
     @speed=10
 
-    @xyCollision  = LinearCollider.new({x: @x,y: @y+@height}, {x: @x+@width, y: @y+@height})
+    @xyCollision  = LinearCollider.new({x: @x,y: @y+@height+5}, {x: @x+@width, y: @y+@height+5})
     @xyCollision2 = LinearCollider.new({x: @x,y: @y}, {x: @x+@width, y: @y}, :pos)
-    @xyCollision3 = LinearCollider.new({x: @x,y: @y}, {x: @x, y: @y+@height})
-    @xyCollision4 = LinearCollider.new({x: @x+@width,y: @y}, {x: @x+@width, y: @y+@height}, :pos)
+    @xyCollision3 = LinearCollider.new({x: @x,y: @y}, {x: @x, y: @y+@height+5})
+    @xyCollision4 = LinearCollider.new({x: @x+@width,y: @y}, {x: @x+@width, y: @y+@height+5}, :pos)
 
     @enabled = true
   end
 
   def update args
-    @xyCollision.resetPoints({x: @x,y: @y+@height}, {x: @x+@width, y: @y+@height})
+    @xyCollision.resetPoints({x: @x,y: @y+@height+5}, {x: @x+@width, y: @y+@height+5})
     @xyCollision2.resetPoints({x: @x,y: @y}, {x: @x+@width, y: @y})
-    @xyCollision3.resetPoints({x: @x,y: @y}, {x: @x, y: @y+@height})
-    @xyCollision4.resetPoints({x: @x+@width,y: @y}, {x: @x+@width, y: @y+@height})
+    @xyCollision3.resetPoints({x: @x,y: @y}, {x: @x, y: @y+@height+5})
+    @xyCollision4.resetPoints({x: @x+@width,y: @y}, {x: @x+@width, y: @y+@height+5})
 
     @xyCollision.update  args
     @xyCollision2.update args
