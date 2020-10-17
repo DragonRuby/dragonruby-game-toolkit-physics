@@ -18,20 +18,17 @@ begin :default_methods
     
     #Possible orientations are :right, :left, :up, :down
 
-    args.state.square ||= Square.new(0, 0, block_size, :right, block_offset)
-    args.state.square2 ||= Square.new(2, 0, block_size, :right, block_offset)
-    args.state.square3 ||= Square.new(4, 0, block_size, :right, block_offset)
-    args.state.square4 ||= Square.new(6, 0, block_size, :right, block_offset)
-
-    args.state.tshape ||= TShape.new(0, 0, block_size, :down, block_offset)
-    args.state.tshape2 ||= TShape.new(3, 0, block_size, :down, block_offset)
+    args.state.square ||= Square.new(2, 0, block_size, :right, block_offset)
+    args.state.square2 ||= Square.new(5, 0, block_size, :right, block_offset)
+    args.state.square3 ||= Square.new(6, 7, block_size, :right, block_offset)
+ 
+    args.state.tshape ||= TShape.new(0, 0, block_size, :left, block_offset)
+    args.state.tshape2 ||= TShape.new(3, 3, block_size, :down, block_offset)
     args.state.tshape3 ||= TShape.new(6, 0, block_size, :left, block_offset)
 
-    args.state.ushape ||= UShape.new(0, 0, block_size, :right, block_offset)
-    args.state.ushape2 ||= UShape.new(4, 0, block_size, :down, block_offset)
-
-    args.state.line ||= Line.new(0, 0, block_size, :right, block_offset)
-    args.state.long_line ||= LongLine.new(4, 0, block_size, :right, block_offset)
+    args.state.line ||= Line.new(4, 0, block_size, :up, block_offset)
+    args.state.line2 ||= Line.new(7, 0, block_size, :up, block_offset)
+    args.state.line3 ||= Line.new(0, 7, block_size, :right, block_offset)
   end
 end
 
@@ -39,20 +36,17 @@ end
 def render args
   render_instructions args
 
-  # args.state.square.draw args
-  # args.state.square2.draw args
-  # args.state.square3.draw args
-  # args.state.square4.draw args
-
-  # args.state.tshape.draw args
-  # args.state.tshape2.draw args
-  # args.state.tshape3.draw args
-
-  # args.state.ushape.draw args
-  # args.state.ushape2.draw args
+  args.state.square.draw args
+  args.state.square2.draw args
+  args.state.square3.draw args
 
   args.state.line.draw args
-  # args.state.long_line.draw args
+  args.state.line2.draw args
+  args.state.line3.draw args
+
+  args.state.tshape.draw args
+  args.state.tshape2.draw args
+
   
   args.outputs.borders << args.state.game_area
 end
