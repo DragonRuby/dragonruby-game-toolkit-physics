@@ -3,10 +3,12 @@ INFINITY= 10**10
 require 'app/vector2d.rb'
 require 'app/peg.rb'
 require 'app/ball.rb'
+require 'app/bucket.rb'
 
 #Method to init default values
 def defaults args
   args.state.pegs ||= []
+  args.state.bucket ||= Bucket.new(250, args)
   init_pegs args
 end
 
@@ -44,6 +46,7 @@ end
 def render args
   args.outputs.borders << args.state.game_area
   render_pegs args
+  args.state.bucket.draw args
 end
 
 begin :render_methods
