@@ -17,7 +17,7 @@ class Bounce
       alpha=0.3
       if @yCenter-@radius <= 0
         @velocity.y  = (@velocity.y.abs*0.7).abs
-        @velocity.x  = (@velocity.x.abs*0.99).abs
+        @velocity.x  = (@velocity.x.abs*0.9).abs
 
         if @velocity.y.abs() < alpha
           @velocity.y=0
