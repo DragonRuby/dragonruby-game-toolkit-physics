@@ -14,7 +14,7 @@ class Bounce
       @xCenter    += @velocity.x
       @yCenter    += @velocity.y
       @velocity.y +=GRAVITY
-      alpha=0.3
+      alpha=0.07
       if @yCenter-@radius <= 0
         @velocity.y  = (@velocity.y.abs*0.7).abs
         @velocity.x  = (@velocity.x.abs*0.9).abs
