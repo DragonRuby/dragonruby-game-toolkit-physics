@@ -52,7 +52,7 @@ class Rectangle
     for b in args.state.balls
       if [b.x, b.y, b.width, b.height].intersect_rect?(@bold)
         for c in @colliders
-          if c.collision?(args, b.getPoints(args))
+          if c.collision?(args, b.getPoints(args),b)
             c.collide args, b
           end
         end

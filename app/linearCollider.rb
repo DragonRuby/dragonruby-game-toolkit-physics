@@ -1,5 +1,9 @@
+
+COLLISIONWIDTH=8
+
 class LinearCollider
-  def initialize (pointA, pointB, mode,collisionWidth=10)
+  attr_reader :pointA, :pointB
+  def initialize (pointA, pointB, mode,collisionWidth=COLLISIONWIDTH)
     @pointA = pointA
     @pointB = pointB
     @mode = mode
@@ -8,6 +12,8 @@ class LinearCollider
     if (@pointA.x > @pointB.x)
       @pointA, @pointB = @pointB, @pointA
     end
+
+    @linearCollider_collision_once = false
   end
 
   def collisionSlope args
@@ -17,7 +23,9 @@ class LinearCollider
     return (@pointB.y - @pointA.y) / (@pointB.x - @pointA.x)
   end
 
-  def collision? (args, points)
+
+  def collision? (args, points, ball=nil)
+
     slope = collisionSlope args
     result = false
 
@@ -32,7 +40,6 @@ class LinearCollider
       mag  = (vect.x**2 + vect.y**2)**0.5
       vect = {y: -1*(vect.x/(mag))*@collisionWidth, x: (vect.y/(mag))*@collisionWidth}
     end
-
 
     rpointA=nil;rpointB=nil;rpointC=nil;rpointD=nil;
     if @mode == :pos
@@ -52,6 +59,21 @@ class LinearCollider
       rpointD = {x:@pointA.x - vect.x, y:@pointA.y - vect.y}
     end
     #four point rectangle
+
+
+
+    if ball != nil
+      xs = [rpointA.x,rpointB.x,rpointC.x,rpointD.x]
+      ys = [rpointA.y,rpointB.y,rpointC.y,rpointD.y]
+      correct = 1
+      rect1 = [ball.x, ball.y, ball.width, ball.height]
+      #$r1 = rect1
+      rect2 = [xs.min-correct,ys.min-correct,(xs.max-xs.min)+correct*2,(ys.max-ys.min)+correct*2]
+      #$r2 = rect2
+      if rect1.intersect_rect?(rect2) == false
+        return false
+      end
+    end
 
 
     #area of a triangle
@@ -74,12 +96,14 @@ class LinearCollider
       end
     end
 
-    #args.outputs.lines <<  [@pointA.x, @pointA.y, @pointB.x, @pointB.y,     000, 000, 000]
-    #args.outputs.lines <<  [rpointA.x, rpointA.y, rpointB.x, rpointB.y,     255, 000, 000]
-    #args.outputs.lines <<  [rpointC.x, rpointC.y, rpointD.x, rpointD.y,     000, 000, 255]
+    #args.outputs.lines << [@pointA.x, @pointA.y, @pointB.x, @pointB.y,     000, 000, 000]
+    #args.outputs.lines << [rpointA.x, rpointA.y, rpointB.x, rpointB.y,     255, 000, 000]
+    #args.outputs.lines << [rpointC.x, rpointC.y, rpointD.x, rpointD.y,     000, 000, 255]
+
+
     #puts (rpointA.x.to_s + " " +  rpointA.y.to_s + " " + rpointB.x.to_s + " "+ rpointB.y.to_s)
     return result
-  end
+  end #end collision?
 
   def getRepelMagnitude (fbx, fby, vrx, vry, ballMag)
     a = fbx ; b = vrx ; c = fby
@@ -147,7 +171,7 @@ class LinearCollider
     xnew = fr*Math.cos(thetaNew)#resulting x velocity
     ynew = fr*Math.sin(thetaNew)#resulting y velocity
     if (velocityMag < MAX_VELOCITY)
-      ball.velocity =  Vector2d.new(1.1*xnew, 1.1*ynew)
+      ball.velocity =  Vector2d.new(xnew*1.1, ynew*1.1)
     else
       ball.velocity =  Vector2d.new(xnew, ynew)
     end

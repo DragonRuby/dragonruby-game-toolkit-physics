@@ -25,22 +25,27 @@ class Ball
     end
 
     def wallBounds args
-        if @x < @left_wall || @x + @width > @right_wall
-            @velocity.x *= -1.1
-            if @velocity.x > @max_velocity
-                @velocity.x = @max_velocity
-            elsif @velocity.x < @max_velocity * -1
-                @velocity.x = @max_velocity * -1
-            end
+        b= false
+        if @x < @left_wall
+          @velocity.x = @velocity.x.abs() * 1
+          b=true
+        elsif @x + @width > @right_wall
+          @velocity.x = @velocity.x.abs() * -1
+          b=true
         end
-        if @y < 0 || @y + @height > args.grid.h
-            @velocity.y *= -1.1
-            if @velocity.y > @max_velocity
-                @velocity.y = @max_velocity
-            elsif @velocity.y < @max_velocity * -1
-                @velocity.y = @max_velocity * -1
-            end
+        if @y < 0
+          @velocity.y = @velocity.y.abs() * 1
+          b=true
+        elsif @y + @height > args.grid.h
+          @velocity.y = @velocity.y.abs() * -1
+          b=true
         end
+        mag = (@velocity.x**2.0 + @velocity.y**2.0)**0.5
+        if (b == true && mag < MAX_VELOCITY)
+          @velocity.x*=1.1;
+          @velocity.y*=1.1;
+        end
+
     end
 
     #render the ball to the screen
@@ -55,7 +60,8 @@ class Ball
           #h: @height,
           #path: "sprites/ball10.png"
         #}
-        args.outputs.sprites <<[@x, @y, @width, @height, "sprites/ball10.png"]
+        #args.outputs.sprites <<[@x, @y, @width, @height, "sprites/ball10.png"]
+        args.outputs.sprites << {x: @x, y: @y, w: @width, h: @height, path:"sprites/ball10.png" }
     end
 
     def getDraw args
