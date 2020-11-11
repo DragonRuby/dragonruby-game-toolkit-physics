@@ -53,6 +53,7 @@ class Bounce
 end
 
 class RoundCollision
+  attr_accessor :didLines
   def initialize
     @xCenter = $args.grid.right/2
     @yCenter = $args.grid.top/2
@@ -94,9 +95,6 @@ class RoundCollision
       {x: @xCenter, y: @yCenter},
       {x: args.state.bounce.xCenter, y: args.state.bounce.yCenter},
     ]
-    #if (@didLines == false)
-      #$lines.append ([normalOfRCCollision[0].x,normalOfRCCollision[0].y,normalOfRCCollision[1].x,normalOfRCCollision[1].y])
-    #end
 
     normalSlope = (normalOfRCCollision[1].y - normalOfRCCollision[0].y)/(normalOfRCCollision[1].x - normalOfRCCollision[0].x)
     slope = normalSlope**-1.0 * -1
@@ -145,11 +143,13 @@ class RoundCollision
     thetaNew = Math.atan2(fsumy, fsumx)  #thetaNew is the resulting angle
     xnew = fr*Math.cos(thetaNew)#resulting x velocity
     ynew = fr*Math.sin(thetaNew)#resulting y velocity
-
-
-
+    if (args.state.bounce.xCenter >= @xCenter)
+      xnew=xnew.abs
+    end
     args.state.bounce.velocity.x = xnew
-    args.state.bounce.velocity.y = ynew * GRAVITY.abs
+    args.state.bounce.velocity.y = ynew * GRAVITY.abs*4
+    args.state.bounce.xCenter+= args.state.bounce.velocity.x
+    args.state.bounce.yCenter+= args.state.bounce.velocity.y
 
     @didLines = true
   end
@@ -202,6 +202,7 @@ def update args
   if args.inputs.keyboard.key_down.r
     args.state.pointA = nil
     args.state.pointB = nil
+    args.state.roundCollision.didLines=false
   end
 
   if args.inputs.keyboard.key_down.enter
@@ -232,7 +233,7 @@ def render args
   end
 
   for s in $solids
-    args.outputs.solids << s[0]
+    args.outputs.solids << s
   end
 end
 
