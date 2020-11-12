@@ -23,9 +23,9 @@ class Peg
       "sprites/circle-white.png",
       0,
       255,
-      0,    #r
-      0,    #g
-      255   #b
+      @r,    #r
+      @g,    #g
+      @b   #b
     ]
   end
 
@@ -33,6 +33,9 @@ class Peg
   def calc args
     if collisionWithBounce? args
       collide args
+      @r = 0
+      @b = 0
+      @g = 255
     else
     end
   end
