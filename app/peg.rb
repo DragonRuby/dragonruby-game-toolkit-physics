@@ -53,7 +53,7 @@ class Peg
     return (squareDistance <= radiusSum)
   end
 
-  def getRepelMagnitude (fbx, fby, vrx, vry, ballMag)
+  def getRepelMagnitude (args, fbx, fby, vrx, vry, ballMag)
     #puts "data:" + fbx.to_s + "|" + fby.to_s + "|" + vrx.to_s + "|" + vry.to_s + "|" + ballMag.to_s
 
     a = fbx ; b = vrx ; c = fby
@@ -78,7 +78,12 @@ class Peg
       #unexpected
     end
 
-    return r
+    if (args.state.ball.center.x > @center.x)
+      return x2*-1
+    end
+    return x2
+
+    #return r
   end
 
   def collide args
@@ -122,7 +127,7 @@ class Peg
 
     fbx = velocityMag * Math.cos(theta_ball) #the x component of the ball's velocity
     fby = velocityMag * Math.sin(theta_ball) #the y component of the ball's velocity
-    repelMag = getRepelMagnitude(fbx, fby, perpVect.x, perpVect.y, (args.state.ball.velocity.x**2 + args.state.ball.velocity.y**2)**0.5)
+    repelMag = getRepelMagnitude(args, fbx, fby, perpVect.x, perpVect.y, (args.state.ball.velocity.x**2 + args.state.ball.velocity.y**2)**0.5)
     frx = repelMag* Math.cos(theta_repel) #the x component of the repel's velocity | magnitude is set to twice of fbx
     fry = repelMag* Math.sin(theta_repel) #the y component of the repel's velocity | magnitude is set to twice of fby
 
@@ -137,9 +142,15 @@ class Peg
     end
 
     args.state.ball.velocity.x = xnew
-    args.state.ball.velocity.y = ynew * GRAVITY.abs*2
-    #args.state.ball.center.x+= args.state.ball.velocity.x
-    #args.state.ball.center.y+= args.state.ball.velocity.y*2
+    if args.state.ball.center.y > @center.y
+      args.state.ball.velocity.y = ynew + GRAVITY * 0.01
+    else
+      args.state.ball.velocity.y = ynew - GRAVITY * 0.01
+    end
+
+    args.state.ball.center.x+= args.state.ball.velocity.x
+    args.state.ball.center.x+= args.state.ball.velocity.y
+
   end
 
 

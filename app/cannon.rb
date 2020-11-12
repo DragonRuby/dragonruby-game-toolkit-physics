@@ -8,7 +8,7 @@ class Cannon
     @pointB = {x: args.inputs.mouse.x, y: args.inputs.mouse.y}
 
     if args.inputs.mouse.click
-      alpha = 0.03
+      alpha = 0.01
       activeBall.velocity.y = (@pointB.y - @pointA.y) * alpha
       activeBall.velocity.x = (@pointB.x - @pointA.x) * alpha
       activeBall.center = {x: (args.grid.w / 2), y: (args.grid.h)}
