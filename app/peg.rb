@@ -4,15 +4,17 @@ class Peg
         @y = y                                                                  # y cordinate of the RIGHT side of the peg
         @block_size = block_size                                                # diameter of the peg
 
-        @radius = block_size/2.0                                                # radius of the peg
+        @radius = @block_size/2.0                                                # radius of the peg
         @center = {                                                             # cordinatees of the CENTER of the peg
-          x: x+block_size/2.0,
-          y: y+block_size/2.0
+          x: @x+@block_size/2.0,
+          y: @y+@block_size/2.0
         }
 
         @r = 255                                                                # color of the peg
         @g = 0
         @b = 0
+
+        @velocity = {x: 2, y: 0}
    end
 
   def draw args
@@ -170,8 +172,10 @@ class Peg
       args.state.ball.velocity.y = ynew - GRAVITY * 0.01                        # if the ball is bellow the middle of the peg we need to temporarily increase the power of the gravity
     end
 
+
+
     args.state.ball.center.x+= args.state.ball.velocity.x                       # update the position of the ball so it never looks like the ball is intersecting the circle
-    args.state.ball.center.x+= args.state.ball.velocity.y
+    args.state.ball.center.y+= args.state.ball.velocity.y
   end
 
 
