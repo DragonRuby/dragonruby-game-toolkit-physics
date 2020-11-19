@@ -94,9 +94,9 @@ end
 
 #Calls all methods necessary for performing calculations
 def calc args
-  # args.state.pegs.each do |peg|
-  #   peg.calc args
-  # end
+  args.state.pegs.each do |peg|
+    peg.calc args
+  end
 
   args.state.blocks.each do |block|
     block.calc args
@@ -114,15 +114,4 @@ def tick args
   defaults args
   render args
   calc args
-
-  args.outputs.labels << [100,100, args.state.display_value]
-
-  args.outputs.sprites << [
-    0,
-    0,
-    100,
-    100,
-    "sprites/square-green.png",
-    45
-  ]
 end
