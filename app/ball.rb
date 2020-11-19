@@ -1,7 +1,7 @@
 GRAVITY = -0.08
 
 class Ball
-    attr_accessor :velocity, :center, :radius
+    attr_accessor :velocity, :center, :radius, :collision_enabled
 
     def initialize args
         #Start the ball in the top center
@@ -20,6 +20,7 @@ class Ball
         @right_wall = $args.grid.right
 
         @max_velocity = 7
+        @collision_enabled = true
     end
 
     #Move the ball according to its velocity

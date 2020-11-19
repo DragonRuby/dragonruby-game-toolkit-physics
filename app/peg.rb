@@ -86,6 +86,7 @@ class Peg
     if (args.state.ball.center.x > @center.x)
       return x2*-1
     end
+
     return x2
 
     #return r
@@ -103,6 +104,7 @@ class Peg
       (normalOfRCCollision[1].x - normalOfRCCollision[0].x)
     )
     slope = normalSlope**-1.0 * -1                                              # slope is the slope of the tangent
+    # args.state.display_value = slope
     pointA = {                                                                  # pointA and pointB are using the var slope to tangent in COMPONENT FORM
       x: args.state.ball.center.x-1,
       y: -(slope-args.state.ball.center.y)
@@ -116,6 +118,7 @@ class Peg
     mag  = (perpVect.x**2 + perpVect.y**2)**0.5                                 # find the magniude of the perpVect
     perpVect = {x: perpVect.x/(mag), y: perpVect.y/(mag)}                       # divide the perpVect by the magniude to make it a unit vector
     perpVect = {x: -perpVect.y, y: perpVect.x}                                  # swap the x and y and multiply by -1 to make the vector perpendicular
+    args.state.display_value = perpVect
     if perpVect.y > 0                                                           #ensure perpVect points upward
       perpVect = {x: perpVect.x*-1, y: perpVect.y*-1}
     end
@@ -171,8 +174,6 @@ class Peg
     else
       args.state.ball.velocity.y = ynew - GRAVITY * 0.01                        # if the ball is bellow the middle of the peg we need to temporarily increase the power of the gravity
     end
-
-
 
     args.state.ball.center.x+= args.state.ball.velocity.x                       # update the position of the ball so it never looks like the ball is intersecting the circle
     args.state.ball.center.y+= args.state.ball.velocity.y
