@@ -5,7 +5,7 @@ require 'app/blocks.rb'
 require 'app/ball.rb'
 require 'app/rectangle.rb'
 require 'app/linearCollider.rb'
-require 'app/SquareCollider.rb'
+require 'app/squareCollider.rb'
 
 
 
