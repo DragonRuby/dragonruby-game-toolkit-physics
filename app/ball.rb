@@ -1,10 +1,12 @@
 
 class Ball
-    attr_accessor :velocity
+    attr_accessor :velocity, :child, :parent, :number, :leastChain
     attr_reader :x, :y, :hypotenuse, :width, :height
 
-    def initialize args
+    def initialize args, number, leastChain, parent, child
         #Start the ball in the top center
+        @number = number
+        @leastChain = leastChain
         @x = args.grid.w / 2
         @y = args.grid.h - 20
 
@@ -16,12 +18,77 @@ class Ball
         @right_wall = @left_wall + args.state.board_width
 
         @max_velocity = MAX_VELOCITY
+
+        @child = child
+        @parent = parent
+
+        @past = [{x: @x, y: @y}]
+        @next = nil
+    end
+
+    def reassignLeastChain (lc=nil)
+      if (lc == nil)
+        lc = @number
+      end
+      @leastChain = lc
+      if (parent != nil)
+        @parent.reassignLeastChain(lc)
+      end
+
+    end
+
+    def makeLeader args
+      if isLeader
+        return
+      end
+      @parent.reassignLeastChain
+      args.state.ballParents.push(self)
+      @parent = nil
+
+    end
+
+    def isLeader
+      return (parent == nil)
+    end
+
+    def receiveNext (p)
+      #trace!
+      if parent != nil
+        @x = p[:x]
+        @y = p[:y]
+        @velocity = p[:velocity]
+        #puts @x.to_s + "|" + @y.to_s + "|"+@velocity.to_s
+        @past.append(p)
+        if (@past.length >= BALL_DISTANCE)
+          if (@child != nil)
+            @child.receiveNext(@past[0])
+            @past.shift
+          end
+        end
+      end
     end
 
     #Move the ball according to its velocity
     def update args
-        @x += @velocity.x
-        @y += @velocity.y
+
+        if isLeader
+          wallBounds args
+          @x += @velocity.x
+          @y += @velocity.y
+          @past.append({x: @x, y: @y, velocity: @velocity})
+          #puts @past
+
+          if (@past.length >= BALL_DISTANCE)
+            if (@child != nil)
+              @child.receiveNext(@past[0])
+              @past.shift
+            end
+          end
+
+        else
+          puts "unexpected"
+          raise "unexpected"
+        end
     end
 
     def wallBounds args
@@ -50,8 +117,8 @@ class Ball
 
     #render the ball to the screen
     def draw args
-        wallBounds args
-        update args
+
+        #update args
         #args.outputs.solids << [@x, @y, @width, @height, 255, 255, 0];
         #args.outputs.sprits << {
           #x: @x,
@@ -65,8 +132,9 @@ class Ball
     end
 
     def getDraw args
-      wallBounds args
-      update args
+      #wallBounds args
+      #update args
+      #args.outputs.labels << [@x, @y, @number.to_s + "|" + @leastChain.to_s]
       return [@x, @y, @width, @height, "sprites/ball10.png"]
     end
 

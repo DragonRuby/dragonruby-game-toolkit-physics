@@ -1,5 +1,7 @@
 INFINITY= 10**10
 MAX_VELOCITY = 8.0
+BALL_COUNT = 90
+BALL_DISTANCE = 20
 require 'app/vector2d.rb'
 require 'app/blocks.rb'
 require 'app/ball.rb'
@@ -18,10 +20,11 @@ def defaults args
   args.state.num_balls ||= 0
   args.state.ball_created_at ||= args.state.tick_count
   args.state.ball_hypotenuse = (10**2 + 10**2)**0.5
-
+  args.state.ballParents ||=nil
 
   init_blocks args
   init_balls args
+
 end
 
 begin :default_methods
@@ -57,13 +60,19 @@ begin :default_methods
   end
 
   def init_balls args
-    return unless args.state.num_balls < 90
+    return unless args.state.num_balls < BALL_COUNT
 
 
     #only create a new ball every 10 ticks
     return unless args.state.ball_created_at.elapsed_time > 10
 
-    args.state.balls.append(Ball.new(args))
+    if (args.state.num_balls == 0)
+      args.state.balls.append(Ball.new(args,args.state.num_balls,BALL_COUNT-1, nil, nil))
+      args.state.ballParents = [args.state.balls[0]]
+    else
+      args.state.balls.append(Ball.new(args,args.state.num_balls,BALL_COUNT-1, args.state.balls.last, nil) )
+      args.state.balls[-2].child = args.state.balls[-1]
+    end
     args.state.ball_created_at = args.state.tick_count
     args.state.num_balls += 1
   end
@@ -132,6 +141,10 @@ end
 
 #Calls all methods necessary for performing calculations
 def calc args
+  for b in args.state.ballParents
+    b.update args
+  end
+
   for s in args.state.squares
     s.update args
   end

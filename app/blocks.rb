@@ -1,12 +1,117 @@
 MAX_COUNT=100
 
+def universalUpdateOne args, shape
+  didHit = false
+  hitters = []
+  #puts shape.to_s
+  toCollide = nil
+  for b in args.state.balls
+    if [b.x, b.y, b.width, b.height].intersect_rect?(shape.bold)
+      didSquare = false
+      for s in shape.squareColliders
+        if (s.collision?(args, b))
+          didSquare = true
+          didHit = true
+          #s.collide(args, b)
+          toCollide = s
+          #hitter = b
+          hitters.append(b)
+        end #end if
+      end #end for
+      if (didSquare == false)
+        for c in shape.colliders
+          #puts args.state.ball.velocity
+          if c.collision?(args, b.getPoints(args),b)
+            #c.collide args, b
+            toCollide = c
+            didHit = true
+            hitters.append(b)
+          end #end if
+        end #end for
+      end #end if
+    end#end if
+  end#end for
+  if (didHit)
+    shape.count=0
+    hitters = hitters.uniq
+    for hitter in hitters
+      hitter.makeLeader args
+      #toCollide.collide(args, hitter)
+      if shape.home == "squares"
+        args.state.squares.delete(shape)
+      elsif shape.home == "tshapes"
+        args.state.tshapes.delete(shape)
+      else shape.home == "lines"
+        args.state.lines.delete(shape)
+      end
+    end
+
+    #puts "HIT!" + hitter.number
+  end
+end
+
+def universalUpdate args, shape
+  #puts shape.home
+  if (shape.count <= 1)
+    universalUpdateOne args, shape
+    return
+  end
+
+  didHit = false
+  hitter = nil
+  for b in args.state.ballParents
+    if [b.x, b.y, b.width, b.height].intersect_rect?(shape.bold)
+      didSquare = false
+      for s in shape.squareColliders
+        if (s.collision?(args, b))
+          didSquare = true
+          didHit = true
+          s.collide(args, b)
+          hitter = b
+        end
+      end
+      if (didSquare == false)
+        for c in shape.colliders
+          #puts args.state.ball.velocity
+          if c.collision?(args, b.getPoints(args),b)
+            c.collide args, b
+            didHit = true
+            hitter = b
+          end
+        end
+      end
+    end
+  end
+  if (didHit)
+    shape.count=shape.count-1
+    shape.damageCount.append([(hitter.leastChain+1 - hitter.number)-1, args.state.tick_count])
+
+  end
+  i=0
+  while i < shape.damageCount.length
+    if shape.damageCount[i][0] <= 0
+      shape.damageCount.delete_at(i)
+      i-=1
+    elsif shape.damageCount[i][1].elapsed_time > BALL_DISTANCE and shape.damageCount[i][0] > 1
+      shape.count-=1
+      shape.damageCount[i][0]-=1
+      shape.damageCount[i][1] = args.state.tick_count
+    end
+    i+=1
+  end
+end
+
+
 class Square
-    def initialize(args, x, y, block_size, orientation, block_offset)
+   attr_accessor :count, :x, :y, :home, :bold, :squareColliders, :colliders, :damageCount
+   def initialize(args, x, y, block_size, orientation, block_offset)
         @x = x * block_size
         @y = y * block_size
         @block_size = block_size
         @block_offset = block_offset
         @orientation = orientation
+        @damageCount = []
+        @home = 'squares'
 
 
         Kernel.srand()
@@ -55,44 +160,20 @@ class Square
    end
 
    def update args
-     didHit = false
-     for b in args.state.balls
-       if [b.x, b.y, b.width, b.height].intersect_rect?(@bold)
-         didSquare = false
-         for s in @squareColliders
-           if (s.collision?(args, b))
-             didSquare = true
-             didHit = true
-             s.collide(args, b)
-           end
-         end
-         if (didSquare == false)
-           for c in @colliders
-             #puts args.state.ball.velocity
-             if c.collision?(args, b.getPoints(args),b)
-               c.collide args, b
-               didHit = true
-             end
-           end
-         end
-       end
-     end
-     if (didHit)
-       @count=@count-1
-       if (@count == 0)
-         args.state.squares.delete(self)
-       end
-     end
-   end #end update
+     universalUpdate args, self
+   end
 end
 
 class TShape
+    attr_accessor :count, :x, :y, :home, :bold, :squareColliders, :colliders, :damageCount
     def initialize(args, x, y, block_size, orientation, block_offset)
         @x = x * block_size
         @y = y * block_size
         @block_size = block_size
         @block_offset = block_offset
         @orientation = orientation
+        @damageCount = []
+        @home = "tshapes"
 
         Kernel.srand()
         @r = rand(255)
@@ -313,9 +394,57 @@ class TShape
 
     end
 
-    def update args
+    def updateOne_old args
       didHit = false
+      hitter = nil
+      toCollide = nil
       for b in args.state.balls
+        if [b.x, b.y, b.width, b.height].intersect_rect?(@bold)
+          didSquare = false
+          for s in @squareColliders
+            if (s.collision?(args, b))
+              didSquare = true
+              didHit = true
+              #s.collide(args, b)
+              toCollide = s
+              hitter = b
+              break
+            end
+          end
+          if (didSquare == false)
+            for c in @colliders
+              #puts args.state.ball.velocity
+              if c.collision?(args, b.getPoints(args),b)
+                #c.collide args, b
+                toCollide = c
+                didHit = true
+                hitter = b
+                break
+              end
+            end
+          end
+        end
+        if didHit
+          break
+        end
+      end
+      if (didHit)
+        @count=0
+        hitter.makeLeader args
+        #toCollide.collide(args, hitter)
+        args.state.tshapes.delete(self)
+        #puts "HIT!" + hitter.number
+      end
+    end
+
+    def update_old args
+      if (@count == 1)
+        updateOne args
+        return
+      end
+      didHit = false
+      hitter = nil
+      for b in args.state.ballParents
         if [b.x, b.y, b.width, b.height].intersect_rect?(@bold)
           didSquare = false
           for s in @squareColliders
@@ -323,6 +452,7 @@ class TShape
               didSquare = true
               didHit=true
               s.collide(args, b)
+              hitter = b
             end
           end
           if (didSquare == false)
@@ -331,6 +461,7 @@ class TShape
               if c.collision?(args, b.getPoints(args), b)
                 c.collide args, b
                 didHit=true
+                hitter = b
               end
             end
           end
@@ -338,21 +469,47 @@ class TShape
       end
       if (didHit)
         @count=@count-1
+        @damageCount.append([(hitter.leastChain+1 - hitter.number)-1, args.state.tick_count])
+
         if (@count == 0)
           args.state.tshapes.delete(self)
+          return
         end
       end
+      i=0
+
+      while i < @damageCount.length
+        if @damageCount[i][0] <= 0
+          @damageCount.delete_at(i)
+          i-=1
+        elsif @damageCount[i][1].elapsed_time > BALL_DISTANCE
+          @count-=1
+          @damageCount[i][0]-=1
+        end
+        if (@count == 0)
+          args.state.tshapes.delete(self)
+          return
+        end
+        i+=1
+      end
     end #end update
+
+    def update args
+      universalUpdate args, self
+    end
 
 end
 
 class Line
+    attr_accessor :count, :x, :y, :home, :bold, :squareColliders, :colliders, :damageCount
     def initialize(args, x, y, block_size, orientation, block_offset)
         @x = x * block_size
         @y = y * block_size
         @block_size = block_size
         @block_offset = block_offset
         @orientation = orientation
+        @damageCount = []
+        @home = "lines"
 
         Kernel.srand()
         @r = rand(255)
@@ -437,36 +594,10 @@ class Line
       ]
       return points
     end
+
     def update args
-      didHit=false
-      for b in args.state.balls
-        if [b.x, b.y, b.width, b.height].intersect_rect?(@bold)
-          didSquare = false
-          for s in @squareColliders
-            if (s.collision?(args, b))
-              didSquare = true
-              s.collide(args, b)
-              didHit=true
-            end
-          end
-          if (didSquare == false)
-            for c in @colliders
-              #puts args.state.ball.velocity
-              if c.collision?(args, b.getPoints(args),b)
-                c.collide args, b
-                didHit=true
-              end
-            end
-          end
-        end
-      end
-      if (didHit)
-        @count=@count-1
-        if (@count == 0)
-          args.state.lines.delete(self)
-        end
-      end
-    end #end update
+      universalUpdate args, self
+    end
 
     def draw(args)
         x_offset = (args.state.board_width + args.grid.w / 8) + @block_offset / 2
